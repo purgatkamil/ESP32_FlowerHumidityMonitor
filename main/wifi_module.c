@@ -1,5 +1,5 @@
 #include "wifi_module.h"
-#include "sdkconfig.h"
+#include "spiffs_module.h"
 
 static const char *TAG = "wifi_module";
 static esp_netif_t *s_example_sta_netif = NULL;
@@ -41,18 +41,33 @@ static SemaphoreHandle_t s_semph_get_ip_addrs = NULL;
 
 esp_err_t example_wifi_connect(void)
 {
+    char ssid[50];
+    char password[50];
+
+    init_spiffs();
+    read_credentials(ssid, password);
+
+
     ESP_LOGI(TAG, "Connecting to WiFi...");
     example_wifi_start();
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = CONFIG_EXAMPLE_WIFI_SSID,
-            .password = CONFIG_EXAMPLE_WIFI_PASSWORD,
+            .ssid = "",
+            .password = "",
             .scan_method = EXAMPLE_WIFI_SCAN_METHOD,
             .sort_method = EXAMPLE_WIFI_CONNECT_AP_SORT_METHOD,
             .threshold.rssi = CONFIG_EXAMPLE_WIFI_SCAN_RSSI_THRESHOLD,
             .threshold.authmode = EXAMPLE_WIFI_SCAN_AUTH_MODE_THRESHOLD,
         },
     };
+    // Ustawienie ssid i password
+    strncpy((char*)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid) - 1);
+    wifi_config.sta.ssid[sizeof(wifi_config.sta.ssid) - 1] = '\0'; // Upewnij się, że ciąg jest zakończony
+    strncpy((char*)wifi_config.sta.password, password, sizeof(wifi_config.sta.password) - 1);
+    wifi_config.sta.password[sizeof(wifi_config.sta.password) - 1] = '\0'; // Upewnij się, że ciąg jest zakończony
+
+
+
 return example_wifi_sta_do_connect(wifi_config, true);
 }
 

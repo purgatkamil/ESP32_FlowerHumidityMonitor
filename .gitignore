@@ -12,6 +12,10 @@ build/
 partitions_example.csv
 sdkconfig.old
 main/Kconfig.projbuild
+sdkonfig.defaults
+main/spiffs_image
+
+
 
 >>>>>>> fhs/http_server
 # User-specific files

@@ -22,14 +22,11 @@
 
 #include "rtc_handling.h"
 #include "html_handling.h"
+#include "spiffs_module.h"
 
 static const char *TAG = "example";
 
 esp_err_t start_rest_server(const char *base_path);
-
-
-
-
 
 #if CONFIG_EXAMPLE_WEB_DEPLOY_SEMIHOST
 esp_err_t init_fs(void)
@@ -76,8 +73,17 @@ esp_err_t init_fs(void)
 }
 #endif
 
+
+
 void app_main(void)
 {
+    
+
+   // list_spiffs_files();
+
+   // printf("SSID: %s\n", ssid);
+    //printf("Password: %s\n", password);
+
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());

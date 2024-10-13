@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include "sdkconfig.h"
 #include "esp_event.h"
 #include "esp_wifi.h"
