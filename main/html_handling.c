@@ -88,7 +88,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-void https_with_url(void)
+esp_err_t update_duckdns_domain_ip(void)
 {
     esp_http_client_config_t config = {
         .url = "https://nouser:e8bd3b4f-95e4-4846-b9c6-3925af85ae7b@www.duckdns.org/nic/update?hostname=fhsserver&myip=&wildcard=NOCHG&mx=NOCHG&backmx=NOCHG",
@@ -104,6 +104,55 @@ void https_with_url(void)
                 esp_http_client_get_content_length(client));
     } else {
         ESP_LOGE(TAG, "Error perform http request %s", esp_err_to_name(err));
+        return ESP_FAIL;
     }
     esp_http_client_cleanup(client);
+    
+    return ESP_OK;
 }
+
+char public_ip[16] = {0};
+
+esp_err_t _http_event_handler_for_getting_ip(esp_http_client_event_t *evt) {
+    switch(evt->event_id) {
+    case HTTP_EVENT_ON_DATA:
+        if (!esp_http_client_is_chunked_response(evt->client)) {
+            // Wyświetl pobrane IP
+            strncpy(public_ip, (char*)evt->data, evt->data_len);
+            public_ip[evt->data_len] = '\0';  // Dodaj terminator łańcucha
+            printf("Public IP: %.*s\n", evt->data_len, (char*)evt->data);
+        }
+        break;
+    default:
+        break;
+    }
+    return ESP_OK;
+}
+
+#define TAG2 "Public_IP"
+
+void get_current_public_ip_address() {
+    // Konfiguracja klienta HTTP
+    esp_http_client_config_t config2 = {
+        .url = "https://api.ipify.org",  // Serwis zwracający publiczny IP
+        .crt_bundle_attach = esp_crt_bundle_attach,
+        .event_handler = _http_event_handler_for_getting_ip,
+    };
+    
+    esp_http_client_handle_t client2 = esp_http_client_init(&config2);
+
+    // Wykonanie zapytania HTTP
+    esp_err_t err = esp_http_client_perform(client2);
+    
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG2, "HTTP GET Status = %d, content_length = %lld",
+                 esp_http_client_get_status_code(client2),
+                 esp_http_client_get_content_length(client2));
+    } else {
+        ESP_LOGE(TAG2, "HTTP GET request failed: %s", esp_err_to_name(err));
+    }
+
+    // Zakończenie klienta HTTP
+    esp_http_client_cleanup(client2);
+}
+

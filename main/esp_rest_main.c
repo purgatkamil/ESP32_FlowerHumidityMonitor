@@ -77,13 +77,6 @@ esp_err_t init_fs(void)
 
 void app_main(void)
 {
-    
-
-   // list_spiffs_files();
-
-   // printf("SSID: %s\n", ssid);
-    //printf("Password: %s\n", password);
-
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -91,6 +84,19 @@ void app_main(void)
     netbiosns_set_name(CONFIG_EXAMPLE_MDNS_HOST_NAME);
 
     ESP_ERROR_CHECK(example_connect());
+    char recent_ip[50];
+    get_recent_ip_from_file(recent_ip);
+    get_current_public_ip_address();
+    extern char public_ip[16];
+
+    if (strcmp(recent_ip, public_ip) == 0) {
+        printf("Adresy IP są identyczne: %s\n", public_ip);
+    } else {
+        printf("Adresy IP są różne: Recent IP: %s, Current IP: %s\n", recent_ip, public_ip);
+        save_ip_to_file(public_ip);
+    }
+    
+    //ESP_ERROR_CHECK(update_duckdns_domain_ip());
     ESP_ERROR_CHECK(init_fs());
     ESP_ERROR_CHECK(start_rest_server(CONFIG_EXAMPLE_WEB_MOUNT_POINT));
 }

@@ -246,3 +246,29 @@ esp_err_t example_disconnect(void)
     ESP_ERROR_CHECK(esp_unregister_shutdown_handler(&example_wifi_shutdown));
     return ESP_OK;
 }
+
+void get_current_local_ip_address()
+{
+    // Pobranie uchwytu do interfejsu Wi-Fi
+    esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif == NULL) {
+        ESP_LOGE("Netif", "Failed to get netif handle");
+        return;
+    }
+    
+    // Pobranie informacji o IP
+    esp_netif_ip_info_t ip_info;
+    if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+        // Bufor na IP jako tekst
+        char ip_str[16];  // IPv4 to maksymalnie 15 znaków + null terminator
+        
+        // Konwersja adresu IP routera (gateway) na string
+        esp_ip4addr_ntoa(&ip_info.gw, ip_str, sizeof(ip_str));
+        
+        // Wyświetlenie adresu IP routera
+        printf("Router IP: %s\n", ip_str);
+    } else {
+        ESP_LOGE("Netif", "Failed to get IP info");
+    }
+}
+

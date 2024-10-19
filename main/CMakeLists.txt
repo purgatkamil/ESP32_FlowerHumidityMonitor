@@ -4,7 +4,7 @@ FILE(GLOB_RECURSE app_sources ${CMAKE_SOURCE_DIR}/main/*.*)
 # Zarejestruj komponent z plikami źródłowymi oraz dołączanymi plikami
 idf_component_register(SRCS ${app_sources}
                     INCLUDE_DIRS "."
-                    EMBED_TXTFILES duckdns-org.pem)
+                    EMBED_TXTFILES duckdns-org.pem ipify-org.pem)
 
 # Tworzenie obrazu SPIFFS z plików w katalogu spiffs_image
 set(WEB_SRC_DIR2 "${CMAKE_CURRENT_SOURCE_DIR}/spiffs_image")

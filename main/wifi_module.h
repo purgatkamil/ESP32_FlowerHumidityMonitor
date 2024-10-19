@@ -35,4 +35,5 @@ esp_netif_t *get_example_netif_from_desc(const char *desc);
 void example_print_all_netif_ips(const char *prefix);
 esp_err_t example_connect(void);
 esp_err_t example_disconnect(void);
-                      
+
+void get_current_local_ip_address();                
