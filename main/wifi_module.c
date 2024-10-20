@@ -44,9 +44,7 @@ esp_err_t example_wifi_connect(void)
     char ssid[50];
     char password[50];
 
-    init_spiffs();
     read_credentials(ssid, password);
-
 
     ESP_LOGI(TAG, "Connecting to WiFi...");
     example_wifi_start();

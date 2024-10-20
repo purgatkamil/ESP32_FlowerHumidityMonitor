@@ -11,7 +11,8 @@
 #include "dirent.h"
 
 
-void init_spiffs();
+esp_err_t init_spiffs_credentials(void);
+esp_err_t init_spiffs_web(void);
 void list_spiffs_files();
 void read_credentials(char* ssid, char* password);
 void get_recent_ip_from_file(char* recent_ip) ;
