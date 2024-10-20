@@ -84,16 +84,30 @@ void app_main(void)
     netbiosns_set_name(CONFIG_EXAMPLE_MDNS_HOST_NAME);
 
     ESP_ERROR_CHECK(example_connect());
+
     char recent_ip[50];
     get_recent_ip_from_file(recent_ip);
-    get_current_public_ip_address();
-    extern char public_ip[16];
 
-    if (strcmp(recent_ip, public_ip) == 0) {
+    extern char public_ip[16];
+    get_current_public_ip_address();
+    
+
+    if (strcmp(recent_ip, public_ip) == 0)
+    {
         printf("Adresy IP są identyczne: %s\n", public_ip);
-    } else {
+    }
+    else
+    {
         printf("Adresy IP są różne: Recent IP: %s, Current IP: %s\n", recent_ip, public_ip);
-        save_ip_to_file(public_ip);
+        if(update_duckdns_domain_ip() == ESP_OK)
+        {
+            save_ip_to_file(public_ip);
+        }
+        else
+        {
+            printf("Nie udało się zaaktualizować IP w domenie duckdns");
+        }
+        
     }
     
     //ESP_ERROR_CHECK(update_duckdns_domain_ip());
