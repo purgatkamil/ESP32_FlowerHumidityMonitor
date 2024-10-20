@@ -9,7 +9,6 @@
 .gitignore.swo
 .gitignore.swp
 build/
-partitions_example.csv
 sdkconfig.old
 main/Kconfig.projbuild
 sdkonfig.defaults
