@@ -140,7 +140,6 @@ void save_ip_to_file(const char *ip) {
         while (fgets(buffer, sizeof(buffer), f) && line_count < MAX_LINES) {
             // Alokujemy pamięć dla każdej linii na podstawie jej długości
             lines[line_count] = strdup(buffer);
-            ESP_LOGI(TAG, "Read line %d: %s", line_count, lines[line_count]);
             
             // Sprawdzenie, czy linia zawiera "RECENT_IP"
             if (strstr(lines[line_count], "RECENT_IP=") != NULL) {
@@ -178,7 +177,6 @@ void save_ip_to_file(const char *ip) {
 
     ESP_LOGI(TAG, "Writing updated lines to file...");
     for (int i = 0; i < line_count; i++) {
-        ESP_LOGI(TAG, "Writing line %d: %s", i, lines[i]);
         fprintf(f, "%s", lines[i]);  // Zapisz każdą linię do pliku
         free(lines[i]);  // Zwolnij pamięć po zapisaniu linii
     }
