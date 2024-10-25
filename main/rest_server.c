@@ -71,6 +71,61 @@ static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepa
     return httpd_resp_set_type(req, type);
 }
 
+/* Nowa funkcja obsługi dla endpointu /temp */
+static esp_err_t temp_post_handler(httpd_req_t *req)
+{
+    char content[100];  // Bufor na odebrane dane; dopasuj rozmiar do potrzeb
+    int ret;
+
+    /* Odczytaj treść żądania do bufora */
+    ret = httpd_req_recv(req, content, sizeof(content) - 1);
+    if (ret <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    content[ret] = '\0';  // Dodaj znak końca stringa
+
+    /* Parsowanie JSON */
+    cJSON *json = cJSON_Parse(content);
+    if (json == NULL) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Nieprawidłowy format JSON");
+        return ESP_FAIL;
+    }
+
+    /* Pobierz wartość wilgotności */
+    cJSON *humidity_item = cJSON_GetObjectItem(json, "humidity");
+    if (!cJSON_IsNumber(humidity_item)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Brak poprawnej wartości wilgotności");
+        cJSON_Delete(json);
+        return ESP_FAIL;
+    }
+
+    float humidity = humidity_item->valuedouble;  // Odczytaj wartość wilgotności
+
+    /* Drukowanie otrzymanej wartości wilgotności */
+    ESP_LOGI(REST_TAG, "Otrzymana wilgotność: %.2f", humidity);
+
+    /* Wygeneruj odpowiedź JSON */
+    cJSON *response_json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(response_json, "received_humidity", humidity);
+    const char *response_str = cJSON_Print(response_json);
+
+    /* Wyślij odpowiedź */
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, response_str, strlen(response_str));
+
+    /* Zwolnij pamięć */
+    cJSON_Delete(json);
+    cJSON_Delete(response_json);
+    free((void *)response_str);
+
+    return ESP_OK;
+}
+
+
+
 /* Send HTTP response with the contents of the requested file */
 static esp_err_t rest_common_get_handler(httpd_req_t *req)
 {
@@ -143,6 +198,15 @@ esp_err_t start_rest_server(const char *base_path)
         .user_ctx = rest_context
     };
     httpd_register_uri_handler(server, &common_get_uri);
+
+        /* Nowy URI handler dla endpointu /temp */
+    httpd_uri_t temp_get_uri = {
+        .uri = "/temp",
+        .method = HTTP_POST,
+        .handler = temp_post_handler,
+        .user_ctx = NULL  // jeśli nie potrzebujemy dodatkowego kontekstu
+    };
+    httpd_register_uri_handler(server, &temp_get_uri);
 
     return ESP_OK;
 err_start:
