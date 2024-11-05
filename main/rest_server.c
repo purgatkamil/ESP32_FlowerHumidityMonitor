@@ -22,6 +22,10 @@
 #include "rtc_handling.h"
 #include "html_handling.h"
 
+#include "cJSON.h"
+
+static const char *TAG = "REST_SERVER";
+
 void initialize_sntp() {
     // Initialize SNTP
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
@@ -29,6 +33,16 @@ void initialize_sntp() {
     esp_sntp_init();
 }
 
+#define BUFFER_SIZE 48         // Define the buffer size
+
+int adc_buffer[BUFFER_SIZE];   // Create an array to store ADC values
+int buffer_index = 0;          // Track the current index in the buffer
+
+// Function to add ADC value to the buffer (circular buffer logic)
+void add_adc_value_to_buffer(int value) {
+    adc_buffer[buffer_index] = value;  // Add the new value at the current index
+    buffer_index = (buffer_index + 1) % BUFFER_SIZE;  // Move to the next index in circular manner
+}
 
 static const char *REST_TAG = "esp-rest";
 #define REST_CHECK(a, str, goto_tag, ...)                                              \
@@ -106,7 +120,7 @@ static esp_err_t temp_post_handler(httpd_req_t *req)
 
     /* Drukowanie otrzymanej wartości wilgotności */
     ESP_LOGI(REST_TAG, "Otrzymana wilgotność: %.2f", humidity);
-
+    add_adc_value_to_buffer(humidity);
     /* Wygeneruj odpowiedź JSON */
     cJSON *response_json = cJSON_CreateObject();
     cJSON_AddNumberToObject(response_json, "received_humidity", humidity);
@@ -123,8 +137,6 @@ static esp_err_t temp_post_handler(httpd_req_t *req)
 
     return ESP_OK;
 }
-
-
 
 /* Send HTTP response with the contents of the requested file */
 static esp_err_t rest_common_get_handler(httpd_req_t *req)
@@ -176,6 +188,50 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t data_post_handler(httpd_req_t *req) {
+    char buf[100];
+    int ret, remaining = req->content_len;
+
+    // Wczytujemy dane z zapytania, ale w tym przypadku ich nie używamy
+    while (remaining > 0) {
+        if ((ret = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)))) <= 0) {
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                httpd_resp_send_408(req); // Timeout
+            }
+            return ESP_FAIL;
+        }
+        remaining -= ret;
+    }
+
+    // Tworzymy obiekt JSON reprezentujący bufor
+    cJSON *json_array = cJSON_CreateArray();
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        // Dodajemy wartość z bufora do tablicy JSON, zaczynając od najstarszej
+        cJSON_AddItemToArray(json_array, cJSON_CreateNumber(adc_buffer[(buffer_index + i) % BUFFER_SIZE]));
+    }
+
+    // Konwertujemy tablicę JSON na string
+    const char *response_str = cJSON_Print(json_array);
+
+    // Ustawiamy nagłówek odpowiedzi na JSON
+    httpd_resp_set_type(req, "application/json");
+
+    // Dodajemy nagłówki CORS
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type");
+
+    httpd_resp_send(req, response_str, strlen(response_str));
+
+    // Czyszczenie pamięci
+    cJSON_Delete(json_array);
+    free((void *)response_str);
+
+    ESP_LOGI(TAG, "POST request handled, sent buffer data as JSON");
+
+    return ESP_OK;
+}
+
 esp_err_t start_rest_server(const char *base_path)
 {
     REST_CHECK(base_path, "wrong base path", err);
@@ -207,6 +263,15 @@ esp_err_t start_rest_server(const char *base_path)
         .user_ctx = NULL  // jeśli nie potrzebujemy dodatkowego kontekstu
     };
     httpd_register_uri_handler(server, &temp_get_uri);
+
+    httpd_uri_t data_uri = {
+        .uri      = "/data",
+        .method   = HTTP_POST,
+        .handler  = data_post_handler,
+        .user_ctx = NULL
+    };
+    httpd_register_uri_handler(server, &data_uri);
+    ESP_LOGI(TAG, "HTTP server started and /data endpoint registered");
 
     return ESP_OK;
 err_start:
